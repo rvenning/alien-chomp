@@ -1,0 +1,151 @@
+/* Alien Chomp — game styles on top of lib/gk-base.css.
+   The kit's primitives (.btn, .screen, .topbar, .modal, .toast, profile roster)
+   are re-themed through the --gk-* custom properties rather than forked. */
+
+:root {
+  --gk-accent: #7ee081;  --gk-accent-sh: #46a54f;
+  --gk-green:  #3fc25a;  --gk-green-sh:  #268a3c;
+  --gk-ink: #0d0a22;
+  --ac-void: #0b0820;
+  --ac-lime: #7ee081;
+  --ac-pink: #ff5ad1;
+  --ac-cyan: #5ad1ff;
+  --ac-gold: #ffd93b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif;
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 15% -10%, #2e1c5e 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 110%, #10324a 0%, transparent 60%),
+    linear-gradient(180deg, #1a1140 0%, var(--ac-void) 70%);
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+.screen { background: transparent; }
+h2 { font-size: 22px; }
+
+/* -------------------------------- splash --------------------------------- */
+.splash-inner {
+  min-height: 100%; width: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  padding: 24px; text-align: center;
+}
+.splash-orbit { font-size: 30px; letter-spacing: 14px; animation: bob 3s ease-in-out infinite; }
+@keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
+.logo {
+  font-size: clamp(42px, 12vw, 70px); line-height: 0.95; font-weight: 800;
+  color: var(--ac-lime);
+  text-shadow: 0 4px 0 #2c7a38, 0 8px 0 rgba(0,0,0,.4);
+  margin: 6px 0 2px;
+}
+.logo span { display: block; color: var(--ac-pink); text-shadow: 0 4px 0 #9c2078, 0 8px 0 rgba(0,0,0,.4); }
+.tagline { font-size: 17px; opacity: .92; margin-bottom: 14px; max-width: 320px; }
+.btn.big { font-size: 22px; padding: 18px 34px; min-width: 260px; }
+.btn.ghost { background: rgba(255,255,255,.14); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.keys-hint { font-size: 12.5px; opacity: .55; margin-top: 10px; display: none; }
+@media (pointer: fine) { .keys-hint { display: block; } }
+.splash-foot { margin-top: 16px; display: flex; align-items: center; gap: 14px; opacity: .9; font-size: 14px; }
+
+/* --------------------------------- hub ----------------------------------- */
+.home-player { font-size: 17px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home-skin {
+  font-size: 12px; font-weight: 800; background: rgba(126,224,129,.2);
+  color: var(--ac-lime); padding: 5px 10px; border-radius: 11px; white-space: nowrap;
+}
+/* minmax(0,…) not 1fr: an `auto` minimum refuses to shrink below its content
+   and the last column spills off a narrow phone. */
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0 18px; }
+.stat {
+  background: rgba(255,255,255,.09); border-radius: 16px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.stat .k { font-size: 12px; opacity: .7; font-weight: 700; }
+.stat .v { font-size: 22px; font-weight: 800; color: var(--ac-gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat.wide { grid-column: 1 / -1; }
+.stat.wide .v { font-size: 18px; color: var(--ac-cyan); }
+.nudge { font-size: 13px; opacity: .75; text-align: center; margin-top: 10px; }
+
+/* -------------------------------- skins ---------------------------------- */
+.skin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skin-card {
+  border: none; border-radius: 18px; padding: 14px 10px; cursor: pointer;
+  font-family: inherit; color: #fff; min-width: 0;
+  background: rgba(255,255,255,.1); box-shadow: 0 4px 0 rgba(0,0,0,.3);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.skin-card.on { background: rgba(126,224,129,.26); box-shadow: 0 4px 0 var(--gk-green-sh); }
+.skin-card.locked { opacity: .5; cursor: default; }
+.skin-card:not(.locked):active { transform: translateY(2px); }
+.skin-blob { width: 40px; height: 48px; border-radius: 50%; display: block; }
+.skin-name { font-weight: 800; font-size: 15px; }
+.skin-need { font-size: 11.5px; opacity: .75; }
+
+/* ------------------------------ game screen ------------------------------ */
+/* gk-base centers .screen children (shrink-to-content width); the stage has to
+   stretch to the full viewport or an absolutely-positioned canvas measures 0. */
+#screen-game { display: none; flex-direction: column; align-items: stretch; overflow: hidden; touch-action: none; }
+#screen-game.active { display: flex; }
+.gamebar {
+  display: flex; align-items: center; gap: 8px;
+  padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
+  background: rgba(8,6,24,.85); z-index: 5;
+}
+.gamebar .iconbtn.small { width: 36px; height: 36px; font-size: 16px; border-radius: 11px; }
+.hunger {
+  flex: 1; height: 16px; min-width: 60px; border-radius: 9px; overflow: hidden;
+  background: rgba(0,0,0,.45); box-shadow: inset 0 2px 4px rgba(0,0,0,.4); position: relative;
+}
+.hunger-fill {
+  height: 100%; width: 100%; border-radius: 9px;
+  background: linear-gradient(180deg, #9cf0a0, var(--gk-green));
+  transition: width .12s linear;
+}
+.hunger-fill.mid { background: linear-gradient(180deg, #ffe27a, #f0a93b); }
+.hunger-fill.low { background: linear-gradient(180deg, #ff9a9a, #e03a3a); animation: panic .5s ease-in-out infinite; }
+@keyframes panic { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+.hunger .lab {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+.hud { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.hud.score { color: var(--ac-gold); font-size: 17px; }
+.hud.dist { opacity: .8; }
+.hud.combo { color: var(--ac-lime); min-width: 26px; }
+.hud.combo.hot { color: var(--ac-pink); animation: pop .35s ease-out infinite alternate; }
+@keyframes pop { from { transform: scale(1) } to { transform: scale(1.14) } }
+.hud.powers { font-size: 15px; }
+.game-stage {
+  position: relative; flex: 1; width: 100%; overflow: hidden; touch-action: none;
+  background: #0b0820;
+}
+/* The canvas is a replaced element: without an explicit CSS size it renders at
+   its ATTRIBUTE size (logical x DPR) and overflows every retina screen. */
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* -------------------------------- results -------------------------------- */
+.res-inner {
+  min-height: 100%; width: 100%; max-width: 480px; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 24px; text-align: center;
+}
+.res-emoji { font-size: 62px; animation: bob 2s ease-in-out infinite; }
+.res-title { font-size: 26px; }
+.res-score { font-size: 50px; font-weight: 800; color: var(--ac-gold); line-height: 1; }
+.res-sub { font-size: 14px; opacity: .75; }
+.res-stats {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  margin: 14px 0 6px; width: 100%; font-size: 14px; font-weight: 700;
+}
+.res-stats div { background: rgba(255,255,255,.09); border-radius: 12px; padding: 8px 10px; }
+.res-stats div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.res-note { font-size: 13.5px; opacity: .8; min-height: 18px; }
+.res-note.unlocked { color: var(--ac-lime); opacity: 1; font-weight: 800; }
+.res-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+
+/* ----------------------------- leaderboard ------------------------------- */
+.lb-stat { font-weight: 800; font-size: 13px; opacity: .9; margin-left: 8px; }

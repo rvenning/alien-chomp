@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Alien Chomp 👽 — Eat the Humans, Dodge the Robots</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0820">
+<meta name="description" content="An endless alien chomp runner: eat every human you can, and never bite a robot.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Alien Chomp">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lib/gk-base.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👽</text></svg>">
+</head>
+<body>
+
+<!-- Splash -->
+<div class="screen active" id="screen-splash">
+  <div class="splash-inner">
+    <div class="splash-orbit" aria-hidden="true"><span>🛸</span><span>🏃</span><span>🤖</span></div>
+    <h1 class="logo">ALIEN<span>CHOMP</span></h1>
+    <p class="tagline">You're starving. Eat every human you can — but never bite a robot.</p>
+    <button class="btn big" id="btn-continue-as" style="display:none"></button>
+    <button class="btn big green" id="btn-start" onclick="App.play()">👽 Start Chomping</button>
+    <button class="btn ghost" id="btn-install" style="display:none">📲 Add to Home Screen</button>
+    <p class="keys-hint">⌨️ Space/↑ jump (twice for a double jump) · ↓ slide &amp; dive-slam · P pause</p>
+    <div class="splash-foot">
+      <span id="sync-badge">⏳ connecting…</span>
+      <button class="btn-sound iconbtn">🔊</button>
+    </div>
+  </div>
+</div>
+
+<!-- Profile picker (roster + PIN modals are rendered by GK.Profiles) -->
+<div class="screen" id="screen-profiles">
+  <header class="topbar">
+    <button class="iconbtn" onclick="App.showScreen('splash')">←</button>
+    <h2 class="grow">Who's hungry?</h2>
+    <button class="btn-sound iconbtn">🔊</button>
+  </header>
+  <div class="content">
+    <div class="profile-list" id="profile-list"></div>
+  </div>
+</div>
+
+<!-- Hub -->
+<div class="screen" id="screen-home">
+  <header class="topbar">
+    <button class="iconbtn" onclick="App.play()">👥</button>
+    <div class="home-player grow" id="home-player"></div>
+    <span class="home-skin" id="home-skin"></span>
+    <button class="iconbtn" onclick="App.showLeaderboard()">🏆</button>
+    <button class="btn-sound iconbtn">🔊</button>
+  </header>
+  <div class="content">
+    <button class="btn big green wide" onclick="App.startRun()">▶️ Start Run</button>
+    <div class="stat-grid">
+      <div class="stat"><span class="k">🏆 Best score</span><span class="v" id="stat-best">0</span></div>
+      <div class="stat"><span class="k">📏 Furthest</span><span class="v" id="stat-dist">0m</span></div>
+      <div class="stat"><span class="k">🍽️ Humans eaten</span><span class="v" id="stat-eaten">0</span></div>
+      <div class="stat"><span class="k">🔥 Best chain</span><span class="v" id="stat-combo">x1</span></div>
+      <div class="stat wide"><span class="k">🗺️ Furthest zone</span><span class="v" id="stat-zone">🏡 Suburbs</span></div>
+    </div>
+    <button class="btn blue wide" onclick="App.showSkins()">👽 Alien Locker</button>
+    <p class="nudge" id="skin-nudge"></p>
+  </div>
+</div>
+
+<!-- Alien locker -->
+<div class="screen" id="screen-skins">
+  <header class="topbar">
+    <button class="iconbtn" onclick="App.showHome()">←</button>
+    <h2 class="grow">👽 Alien Locker</h2>
+  </header>
+  <div class="content">
+    <p class="nudge">Eat humans to unlock new aliens. They all chomp the same.</p>
+    <div class="skin-grid" id="skin-list"></div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div class="screen" id="screen-leaderboard">
+  <header class="topbar">
+    <button class="iconbtn" onclick="App.showHome()">←</button>
+    <h2 class="grow">🏆 Family Aliens</h2>
+    <button class="btn-sound iconbtn">🔊</button>
+  </header>
+  <div class="content">
+    <div class="lb-rows" id="lb-rows"></div>
+  </div>
+</div>
+
+<!-- Game -->
+<div class="screen" id="screen-game">
+  <header class="gamebar">
+    <button class="iconbtn small" onclick="Game.pause()">⏸</button>
+    <div class="hunger"><div class="hunger-fill" id="hunger-fill"></div><span class="lab">HUNGER</span></div>
+    <span class="hud combo" id="hud-combo"></span>
+    <span class="hud powers" id="hud-powers"></span>
+    <span class="hud dist" id="hud-dist">0m</span>
+    <span class="hud score" id="hud-score">0</span>
+  </header>
+  <div class="game-stage">
+    <canvas id="cv"></canvas>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="screen" id="screen-results">
+  <div class="res-inner">
+    <div class="res-emoji" id="res-emoji">💀</div>
+    <h2 class="res-title" id="res-title"></h2>
+    <div class="res-score" id="res-score">0</div>
+    <div class="res-sub" id="res-sub"></div>
+    <div class="res-stats" id="res-stats"></div>
+    <p class="res-note" id="res-note"></p>
+    <div class="res-actions">
+      <button class="btn grey" onclick="App.showHome()">🏠 Home</button>
+      <button class="btn green" onclick="App.startRun()">↻ Run Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pause -->
+<div class="modal" id="modal-pause">
+  <div class="sheet">
+    <h2>⏸ Paused</h2>
+    <button class="btn blue wide" id="btn-music" onclick="App.toggleMusic()">🎵 Music: On</button>
+    <div class="row-btns2">
+      <button class="btn green" onclick="Game.resume()">▶️ Resume</button>
+      <button class="btn grey" onclick="Game.quit()">🏠 Quit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- gamekit (vendored from rvenning/gamekit into lib/) -->
+<script src="lib/gk-util.js"></script>
+<script src="lib/gk-audio.js"></script>
+<script src="lib/gk-ui.js"></script>
+<script src="lib/gk-storage.js"></script>
+<script src="lib/gk-profiles.js"></script>
+<script src="lib/gk-pwa.js"></script>
+<script src="lib/gk-fx.js"></script>
+<script>
+// Alien Chomp's juice is lighter and bouncier than the kit's Brick Breaker
+// defaults — small round particles, a shake that settles fast so the road
+// stays readable at speed.
+const Fx = GK.Fx.configure({
+  grav: 340, poolCap: 600, shakeMax: 11, shakeDecay: 30, shape: "circle",
+  burstSpeed: 150, burstSize: 2.6, textSize: 12, textDy: -34, textCap: 26,
+  font: "'Baloo 2', system-ui, sans-serif",
+});
+const Tween = GK.Tween;
+</script>
+<script src="js/firebase-config.js"></script>
+<!-- data registries -->
+<script src="js/zones.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/skins.js"></script>
+<!-- systems -->
+<script src="js/storage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "alien-chomp",
+  "private": true,
+  "description": "Alien Chomp — an endless chomp runner built on gamekit.",
+  "scripts": {
+    "test": "node --test",
+    "icons": "node tools/make-icons.js"
+  }
+}
