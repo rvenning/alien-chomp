@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alien Chomp — art proof sheet</title>
+<!-- A development proof sheet, deliberately NOT in sw.js's SHELL. It draws every
+     painter in js/art.js at 4x against every zone palette, which is the only
+     practical way to judge a 9px snack. Open tools/artsheet.html. -->
+<style>
+  body { margin:0; background:#12102a; color:#f2ecff;
+         font:13px/1.4 'Baloo 2',system-ui,sans-serif; padding:16px; }
+  h2 { font-size:15px; margin:18px 0 6px; color:#8ef0ff; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  figure { margin:0; text-align:center; }
+  figcaption { font-size:10px; opacity:.7; margin-top:2px; }
+  canvas { display:block; border-radius:6px; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+
+<script src="../lib/gk-util.js"></script>
+<script src="../lib/gk-audio.js"></script>
+<script src="../lib/gk-fx.js"></script>
+<script>const Fx = GK.Fx; const POWERUPS_READY = true;</script>
+<script src="../js/zones.js"></script>
+<script src="../js/entities.js"></script>
+<script src="../js/skins.js"></script>
+<script>
+  // The three geometry constants art.js reads out of game.js. Restated rather
+  // than loading the engine, which wants a canvas and an input layer.
+  const LW = 400, LH = 225, GROUND_Y = 172, PLAYER_X = 96;
+  const P = { W: 20, H: 28, SLIDE_H: 15 };
+  const RULES_MAGNET = 92;
+</script>
+<script src="../js/art.js"></script>
+<script>
+const out = document.getElementById("out");
+const Z = 4;                                   // magnification
+
+function cell(label, lw, lh, draw) {
+  const fig = document.createElement("figure");
+  const c = document.createElement("canvas");
+  c.width = lw * Z; c.height = lh * Z;
+  c.style.width = lw * Z + "px"; c.style.height = lh * Z + "px";
+  const ctx = c.getContext("2d");
+  ctx.setTransform(Z, 0, 0, Z, 0, 0);
+  draw(ctx, lw, lh);
+  fig.appendChild(c);
+  const cap = document.createElement("figcaption");
+  cap.textContent = label;
+  fig.appendChild(cap);
+  return fig;
+}
+
+function section(title) {
+  const h = document.createElement("h2"); h.textContent = title; out.appendChild(h);
+  const d = document.createElement("div"); d.className = "row"; out.appendChild(d);
+  return d;
+}
+
+const T = Number(new URLSearchParams(location.search).get("t") || 0.7);
+
+/* ---- every snack and hazard, on every zone's street ---- */
+for (const z of ZONES) {
+  const row = section(z.name);
+  const ground = (ctx, lw, lh) => {
+    const A = Art.art(z);
+    ctx.fillStyle = z.sky[1]; ctx.fillRect(0, 0, lw, lh);
+    ctx.fillStyle = z.ground; ctx.fillRect(0, lh - 12, lw, 12);
+    ctx.fillStyle = A.kerb; ctx.fillRect(0, lh - 12, lw, 2);
+    ctx.fillStyle = z.groundDark; ctx.fillRect(0, lh - 10, lw, 10);
+  };
+  for (const [k, h] of Object.entries(HUMANS)) {
+    row.appendChild(cell(h.name, 34, 44, (ctx, lw, lh) => {
+      ground(ctx, lw, lh);
+      Art.shadow(ctx, lw / 2, lh - 12, h.h * 0.34, 0);
+      ctx.translate(lw / 2, lh - 12 - h.h / 2);
+      Art.paintHuman(ctx, k, { t: T, fleeing: k === "runner" });
+    }));
+  }
+  for (const [k, r] of Object.entries(ROBOTS)) {
+    row.appendChild(cell(r.name, 40, 58, (ctx, lw, lh) => {
+      ground(ctx, lw, lh);
+      Art.shadow(ctx, lw / 2, lh - 12, Math.max(r.w, r.h) * 0.34, r.fly ? 26 : 0);
+      ctx.translate(lw / 2, lh - 12 - r.h / 2 - (r.fly ? 26 : 0));
+      Art.paintRobot(ctx, k, { t: T });
+    }));
+  }
+  row.appendChild(cell("Mech FRENZY", 40, 58, (ctx, lw, lh) => {
+    ground(ctx, lw, lh);
+    ctx.translate(lw / 2, lh - 12 - ROBOTS.mech.h / 2);
+    Art.paintRobot(ctx, "mech", { t: T, edible: true });
+  }));
+  row.appendChild(cell("brain", 26, 26, (ctx, lw, lh) => {
+    ctx.fillStyle = z.sky[1]; ctx.fillRect(0, 0, lw, lh);
+    ctx.translate(lw / 2, lh / 2);
+    Art.paintBrain(ctx, { t: T });
+  }));
+  for (const id of POWERUP_IDS) {
+    row.appendChild(cell(POWERUPS[id].name, 30, 30, (ctx, lw, lh) => {
+      ctx.fillStyle = z.sky[1]; ctx.fillRect(0, 0, lw, lh);
+      ctx.translate(lw / 2, lh / 2);
+      Art.paintOrb(ctx, id, { t: T });
+    }));
+  }
+}
+
+/* ---- the six aliens, in every pose ---- */
+const poses = [
+  ["run", { grounded: true, sliding: false, run: 2.2, vy: 0 }],
+  ["jump", { grounded: false, sliding: false, run: 2.2, vy: -220 }],
+  ["slide", { grounded: true, sliding: true, run: 2.2, vy: 0 }],
+  ["chomp", { grounded: true, sliding: false, run: 2.2, vy: 0, chomp: 0.16 }],
+  ["hurt", { grounded: true, sliding: false, run: 2.2, vy: 0, hurt: 0.4 }],
+  ["chain x8", { grounded: true, sliding: false, run: 2.2, vy: 0, combo: 8 }],
+  ["frenzy", { grounded: true, sliding: false, run: 2.2, vy: 0, frenzy: true }],
+];
+for (const sk of SKINS) {
+  const row = section("Alien — " + sk.name);
+  for (const [label, st] of poses) {
+    row.appendChild(cell(label, 44, 52, (ctx, lw, lh) => {
+      ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+      const gy = lh - 8;
+      const h = st.sliding ? P.SLIDE_H : P.H;
+      Art.paintAlienPool(ctx, lw / 2, gy, P.W * 0.5);
+      Art.shadow(ctx, lw / 2, gy, P.W * 0.52, st.grounded ? 0 : 18);
+      ctx.translate(lw / 2, gy - h / 2 - (st.grounded ? 0 : 18));
+      Art.paintAlien(ctx, sk, Object.assign(
+        { w: P.W, h, chomp: 0, hurt: 0, combo: 1, frenzy: false, t: T, mood: "run" }, st));
+    }));
+  }
+  row.appendChild(cell("card happy", 48, 48, (ctx, lw, lh) => {
+    ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+    Art.paintAlienCard(ctx, sk, lw / 2, lh * 0.5, lh * 0.62, "happy", T);
+  }));
+  row.appendChild(cell("card sad", 48, 48, (ctx, lw, lh) => {
+    ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+    Art.paintAlienCard(ctx, sk, lw / 2, lh * 0.5, lh * 0.62, "sad", T);
+  }));
+}
+
+/* ---- the powers, which used to read as debug overlays ---- */
+{
+  const row = section("Powers");
+  row.appendChild(cell("Force Bubble", 44, 44, (ctx, lw, lh) => {
+    ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+    ctx.translate(lw / 2, lh / 2);
+    Art.paintAlien(ctx, SKINS[0], { w: P.W, h: P.H, run: 2, grounded: true, sliding: false,
+      vy: 0, chomp: 0, hurt: 0, combo: 1, frenzy: false, t: T, mood: "run" });
+    ctx.translate(-lw / 2, -lh / 2);
+    Art.paintShield(ctx, lw / 2, lh / 2, P.W * 0.88, T);
+  }));
+  row.appendChild(cell("Tractor Beam", 116, 60, (ctx, lw, lh) => {
+    ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+    Art.paintBeam(ctx, 16, lh / 2, RULES_MAGNET, T);
+    ctx.translate(16, lh / 2);
+    Art.paintAlien(ctx, SKINS[0], { w: P.W, h: P.H, run: 2, grounded: true, sliding: false,
+      vy: 0, chomp: 0, hurt: 0, combo: 1, frenzy: false, t: T, mood: "run" });
+  }));
+  row.appendChild(cell("ghost (jogger)", 44, 44, (ctx, lw, lh) => {
+    ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+    Art.paintGhost(ctx, { kind: "human", type: "runner", t: 0.15, life: 0.3, et: T,
+      y: lh / 2, ring: "rgba(255,216,150,0.95)" }, lw / 2);
+  }));
+  row.appendChild(cell("close shave", 44, 44, (ctx, lw, lh) => {
+    ctx.fillStyle = "#20304a"; ctx.fillRect(0, 0, lw, lh);
+    Art.paintDodge(ctx, lw / 2, lh / 2, 0.4);
+  }));
+}
+
+/* ---- the skyline blocks ---- */
+for (const z of ZONES) {
+  const row = section(z.name + " — blocks");
+  for (let band = 0; band < 2; band++) {
+    for (let v = 0; v < 8; v++) {
+      const sp = Art.buildingSprite(z, band, v, 1);
+      row.appendChild(cell((band ? "near " : "far ") + v, sp.lw, sp.lh, (ctx, lw, lh) => {
+        ctx.fillStyle = z.sky[1]; ctx.fillRect(0, 0, lw, lh);
+        ctx.drawImage(sp.c, 0, 0, sp.lw, sp.lh);
+      }));
+    }
+  }
+}
+
+/* ---- the street tiles ---- */
+{
+  const row = section("Street tiles (192 x 53)");
+  for (const z of ZONES) {
+    const tile = Art.streetTile(z, 53, 1);
+    row.appendChild(cell(z.name, 192, 53, (ctx) => ctx.drawImage(tile, 0, 0, 192, 53)));
+    Art._streetKey = "";                       // one cache slot; force the next
+  }
+}
+</script>
+</body>
+</html>

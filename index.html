@@ -23,7 +23,7 @@
 <!-- Splash -->
 <div class="screen active" id="screen-splash">
   <div class="splash-inner">
-    <div class="splash-orbit" aria-hidden="true"><span>🛸</span><span>🏃</span><span>🤖</span></div>
+    <div class="hero-wrap" aria-hidden="true"><canvas id="hero-cv"></canvas></div>
     <h1 class="logo">ALIEN<span>CHOMP</span></h1>
     <p class="tagline">You're starving. Eat every human you can — but never bite a robot.</p>
     <button class="btn big" id="btn-continue-as" style="display:none"></button>
@@ -114,7 +114,7 @@
 <!-- Results -->
 <div class="screen" id="screen-results">
   <div class="res-inner">
-    <div class="res-emoji" id="res-emoji">💀</div>
+    <div class="res-hero" aria-hidden="true"><canvas id="res-cv"></canvas></div>
     <h2 class="res-title" id="res-title"></h2>
     <div class="res-score" id="res-score">0</div>
     <div class="res-sub" id="res-sub"></div>
@@ -169,6 +169,7 @@ const Tween = GK.Tween;
 <script src="js/storage.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/game.js"></script>
+<script src="js/art.js"></script>
 <script src="js/render.js"></script>
 <script src="js/main.js"></script>
 </body>

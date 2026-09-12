@@ -4,6 +4,108 @@
 
 const AVATARS = ["👽", "🛸", "👾", "🦄", "🐙", "🦖", "🐸", "🦊", "🐼", "🐱", "🦉", "⭐"];
 
+
+/* ---------------------------------------------------------------------------
+   Hero canvases.
+
+   The splash, the results screen and every card in the Alien Locker draw their
+   alien with js/art.js — the same painter the game uses, at the same moment in
+   its animation. That is what stops the menus slowly drifting away from the
+   character: there is no second drawing of her anywhere to forget about.
+
+   Each registered canvas is repainted only while it is actually on screen, and
+   the sizing is redone whenever its CSS box changes, because a canvas is a
+   replaced element and its attribute size is the backing store.
+   --------------------------------------------------------------------------- */
+const Hero = {
+  items: [],
+  t: 0,
+
+  add(el, draw) {
+    if (!el) return;
+    this.items = this.items.filter((it) => it.el !== el && it.el.isConnected);
+    this.items.push({ el, draw, w: 0, h: 0 });
+  },
+  clearKind(selector) {
+    this.items = this.items.filter((it) => !it.el.matches(selector));
+  },
+
+  // Returns a context already scaled so the caller can work in CSS pixels.
+  fit(it) {
+    const w = it.el.clientWidth, h = it.el.clientHeight;
+    if (!w || !h) return null;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (it.w !== w || it.h !== h || it.dpr !== dpr) {
+      it.w = w; it.h = h; it.dpr = dpr;
+      it.el.width = Math.round(w * dpr);
+      it.el.height = Math.round(h * dpr);
+    }
+    const ctx = it.el.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return ctx;
+  },
+
+  loop(ms) {
+    requestAnimationFrame((n) => Hero.loop(n));
+    const dt = Math.min(0.05, (ms - (Hero._last || ms)) / 1000 || 0);
+    Hero._last = ms;
+    Hero.t += dt;
+    for (const it of Hero.items) {
+      if (!it.el.isConnected || !it.el.offsetParent) continue;
+      const ctx = Hero.fit(it);
+      if (ctx) it.draw(ctx, it.w, it.h, Hero.t);
+    }
+  },
+
+  // The splash cast: the alien, the jogger she is chasing, and the robot that
+  // is the reason this is difficult. Authored in a fixed 200x78 logical box and
+  // fitted, so it reads the same on a phone and on a monitor.
+  cast(ctx, w, h, t, sk) {
+    // The box is sized to what the cast actually occupies, not to a round
+    // number: a box with empty margins baked in just scales everybody down.
+    const BW = 152, BH = 64;
+    const s = Math.min(w / BW, h / BH);
+    ctx.save();
+    ctx.translate((w - BW * s) / 2, (h - BH * s) / 2);
+    ctx.scale(s, s);
+    const gy = 52;
+    // the patch of street they are all standing on
+    ctx.globalAlpha = 0.5;
+    Art.softBlob(ctx, BW / 2, gy + 3, 74, 8, "rgba(0,0,0,0.5)");
+    ctx.globalAlpha = 1;
+
+    // the robot, furthest away and therefore smallest
+    ctx.save();
+    Art.shadow(ctx, 128, gy, 9, 0);
+    ctx.translate(128, gy - ROBOTS.bot.h / 2);
+    Art.paintRobot(ctx, "bot", { t: t * 0.8 });
+    ctx.restore();
+
+    // the jogger, mid-bolt
+    ctx.save();
+    Art.shadow(ctx, 92, gy, 8, 0);
+    ctx.translate(92, gy - HUMANS.runner.h / 2);
+    ctx.scale(1.25, 1.25);
+    Art.paintHuman(ctx, "runner", { t: t * 1.1, fleeing: true });
+    ctx.restore();
+
+    // and the alien, chomping on a loop
+    const chomp = (t * 0.8) % 1 < 0.18 ? 0.16 : 0;
+    const H = 40, W = 28;
+    Art.paintAlienPool(ctx, 40, gy, W * 0.55);
+    Art.shadow(ctx, 40, gy, W * 0.55, 0);
+    ctx.save();
+    ctx.translate(40, gy - H / 2 + Math.sin(t * 2.2) * 1.2 * Art.motion);
+    Art.paintAlien(ctx, sk, {
+      w: W, h: H, run: t * 9, grounded: true, sliding: false, vy: 0,
+      chomp, hurt: 0, combo: 1, frenzy: false, t, mood: "run",
+    });
+    ctx.restore();
+    ctx.restore();
+  },
+};
+
 const App = {
   profile: null,
 
@@ -32,8 +134,21 @@ const App = {
       addLabel: "New Alien",
     });
 
+    // One flag for the canvas half of reduced motion: every sway, drift,
+    // pulse, streak, shake and squash in art.js multiplies by Art.motion, so
+    // "does reduced motion work" is answerable by setting it to 0 in a console.
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const applyMotion = () => {
+      Art.motion = mq.matches ? 0 : 1;
+      document.body.classList.toggle("reduced-motion", mq.matches);
+    };
+    applyMotion();
+    if (mq.addEventListener) mq.addEventListener("change", applyMotion);
+    else if (mq.addListener) mq.addListener(applyMotion);
+
     GK.initPWA({ appName: "Alien Chomp" });
     Game.boot();
+    requestAnimationFrame((t) => Hero.loop(t));
 
     this.showScreen("splash");
     Storage.initFirebase().then((ok) => {
@@ -60,6 +175,10 @@ const App = {
   /* ------------------------------- splash -------------------------------- */
   refreshSplash() {
     const last = GK.Profiles.lastProfile();
+    // The alien on the splash is the one this player last wore, so the game
+    // greets her with her own character rather than with the starter blob.
+    const sk = last ? activeSkin(Storage.getProgress(last.id)) : SKINS[0];
+    Hero.add(this.el("hero-cv"), (ctx, w, h, t) => Hero.cast(ctx, w, h, t, sk));
     const cont = this.el("btn-continue-as"), start = this.el("btn-start");
     if (last) {
       cont.style.display = "";
@@ -116,12 +235,20 @@ const App = {
       const on = got && s.id === wearing;
       return `<button class="skin-card${got ? "" : " locked"}${on ? " on" : ""}"
         ${got ? `onclick="App.wearSkin('${s.id}')"` : "disabled"}>
-        <span class="skin-blob" style="background:${got ? s.body : "#4a4a5a"};
-              box-shadow: inset -4px -5px 0 ${got ? s.dark : "#33333f"}"></span>
+        <canvas class="skin-cv" data-skin="${s.id}"></canvas>
         <span class="skin-name">${got ? GK.util.esc(s.name) : "???"}</span>
         <span class="skin-need">${got ? (on ? "Wearing" : "Tap to wear") : `🍽️ ${s.need} eaten`}</span>
       </button>`;
     }).join("");
+    // Re-registered after every rebuild: the old canvases are gone from the DOM.
+    Hero.clearKind(".skin-cv");
+    this.el("skin-list").querySelectorAll(".skin-cv").forEach((cv) => {
+      const sk = SKIN_BY_ID[cv.dataset.skin];
+      const on = sk.id === wearing;
+      Hero.add(cv, (ctx, w, h, t) =>
+        Art.paintAlienCard(ctx, sk, w / 2, h * 0.52, h * 0.72, on ? "happy" : "run",
+          t + sk.need * 0.0013));
+    });
     this.showScreen("skins");
   },
 
@@ -140,8 +267,13 @@ const App = {
     if (quit) { this.showHome(); return; }
 
     const newBest = res.score > prevBest;
-    this.el("res-emoji").textContent = newBest ? "🏆" : "💀";
-    this.el("res-title").textContent = newBest ? "NEW BEST!" : "Starved!";
+    // Same painter as the run, so the results screen is unmistakably about the
+    // alien the player just lost.
+    const sk = activeSkin(saved);
+    const mood = newBest ? "happy" : "sad";
+    Hero.add(this.el("res-cv"), (ctx, w, h, t) =>
+      Art.paintAlienCard(ctx, sk, w / 2, h * 0.52, h * 0.66, mood, t));
+    this.el("res-title").textContent = newBest ? "🏆 NEW BEST!" : "Starved!";
     this.el("res-score").textContent = res.score.toLocaleString();
     this.el("res-sub").textContent = newBest
       ? `Beat your old best of ${prevBest.toLocaleString()}`

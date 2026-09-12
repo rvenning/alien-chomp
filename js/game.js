@@ -134,7 +134,7 @@ const Game = {
     this.running = true; this.paused = false; this.dead = false;
     GK.UI.showScreen("game");
     this.resize();               // the stage only has a size once it's visible
-    this.updateHud();
+    if (this.updateHud) this.updateHud();
     if (Music.enabled) Music.start("chase");
   },
 
@@ -167,7 +167,19 @@ const Game = {
     this.frenzyT = 0;
     this.hintT = 6;
     this.result = null;
+    this.q = [];
     if (typeof Fx !== "undefined") { Fx.reset(); Tween.clear(); }
+  },
+
+  // Presentation-only event queue. render.js drains it each frame and turns
+  // each entry into a ghost of the thing that was there; NOTHING in this file
+  // or in tests/ ever reads it back, so a new event type can never change the
+  // simulation. Capped here rather than at the drain, so a headless run with
+  // no renderer attached cannot grow it without bound.
+  fx(type, x, y, extra) {
+    if (!this.q) this.q = [];
+    if (this.q.length > 48) this.q.shift();
+    this.q.push(Object.assign({ type, x, y }, extra));
   },
 
   pause() {
@@ -200,6 +212,10 @@ const Game = {
     if (!this.active) return;
     if (this.running && !this.paused) this.update(real);
     if (typeof Fx !== "undefined") Fx.update(real);
+    // Presentation only, and guarded: render.js owns all three, and the
+    // headless bot never loads it.
+    if (this.juice) this.juice(real);
+    if (this.drainEvents) this.drainEvents();
     this.render();
   },
 
@@ -258,7 +274,8 @@ const Game = {
     if (this.hunger > RULES.HUNGER_MAX) this.hunger = RULES.HUNGER_MAX;
 
     this.cull();
-    this.updateHud();
+    // The HUD lives in render.js now, which the headless bot never loads.
+    if (this.updateHud) this.updateHud();
   },
 
   /* ------------------------------ the alien ------------------------------ */
@@ -382,6 +399,7 @@ const Game = {
       e.dead = true;
       this.robots++;
       this.score += spec.slamScore || 10;
+      this.fx("smash", e.x, e.y, { kind: "robot", etype: e.type, et: e.t });
       if (typeof Fx !== "undefined") {
         Fx.burst(e.x - this.camX, e.y, spec.body, 14, 150, 0.5, 2.6);
         Fx.text(e.x - this.camX, e.y - 10, `+${spec.slamScore}`, { color: "#ffd93b" });
@@ -589,6 +607,7 @@ const Game = {
     this.p.chompT = 0.16;
     this.p.sx = 1.22; this.p.sy = 0.84;
     if (spec.food >= 20) Sfx.bigChomp(); else Sfx.chomp(this.combo);
+    this.fx("eat", e.x, e.y, { kind: "human", etype: e.type, et: e.t, fleeing: !!e.fleeing });
     if (typeof Fx !== "undefined") {
       Fx.burst(e.x - this.camX, e.y, spec.shirt, 12, 140, 0.45, 2.4);
       Fx.burst(e.x - this.camX, e.y, "#ff6b81", 6, 90, 0.4, 2);
@@ -603,6 +622,7 @@ const Game = {
     this.score += BRAIN.score;
     this.hunger = Math.min(RULES.HUNGER_MAX, this.hunger + BRAIN.food);
     Sfx.coin();
+    this.fx("eat", e.x, e.y, { kind: "brain", et: e.t });
     if (typeof Fx !== "undefined") {
       Fx.sparkle(e.x - this.camX, e.y, "#ff9fd8");
       Fx.text(e.x - this.camX, e.y - 6, `+${BRAIN.score}`, { color: "#ff9fd8", size: 11 });
@@ -613,6 +633,7 @@ const Game = {
     const spec = POWERUPS[e.type];
     e.dead = true;
     Sfx.power(POWERUP_IDS.indexOf(e.type));
+    this.fx("eat", e.x, e.y, { kind: "orb", etype: e.type, et: e.t });
     if (e.type === "shield") this.shield = true;
     else if (e.type === "magnet") this.magnetT = spec.dur;
     else if (e.type === "snack") this.hunger = Math.min(RULES.HUNGER_MAX, this.hunger + RULES.SNACK_REFILL);
@@ -643,6 +664,7 @@ const Game = {
       this.comboT = RULES.COMBO_WINDOW;
       p.chompT = 0.16;
       Sfx.bigChomp();
+      this.fx("eat", e.x, e.y, { kind: "robot", etype: e.type, et: e.t, edible: true });
       if (typeof Fx !== "undefined") {
         Fx.burst(e.x - this.camX, e.y, spec.body, 18, 180, 0.5, 3);
         Fx.text(e.x - this.camX, e.y - 10, `+${RULES.FRENZY_ROBOT_SCORE * this.combo}`, { color: "#ff5ad1" });
@@ -659,6 +681,7 @@ const Game = {
       this.robots++;
       this.score += spec.slamScore || 10;
       Sfx.boom();
+      this.fx("smash", e.x, e.y, { kind: "robot", etype: e.type, et: e.t });
       if (typeof Fx !== "undefined") {
         Fx.addShake(5);
         Fx.burst(e.x - this.camX, e.y, spec.body, 16, 170, 0.5, 2.8);
@@ -733,25 +756,6 @@ const Game = {
     };
   },
 
-  /* --------------------------------- HUD --------------------------------- */
-  updateHud() {
-    const el = (id) => document.getElementById(id);
-    const fill = el("hunger-fill");
-    if (!fill) return;
-    const pct = Math.max(0, this.hunger) / RULES.HUNGER_MAX;
-    fill.style.width = (pct * 100).toFixed(1) + "%";
-    fill.className = "hunger-fill" + (pct < 0.25 ? " low" : pct < 0.5 ? " mid" : "");
-    el("hud-score").textContent = Math.round(this.score).toLocaleString();
-    el("hud-dist").textContent = this.metres + "m";
-    const c = el("hud-combo");
-    c.textContent = this.combo > 1 ? `x${this.combo}` : "";
-    c.className = "hud combo" + (this.combo >= 5 ? " hot" : "");
-    let pw = "";
-    if (this.shield) pw += POWERUPS.shield.icon;
-    if (this.magnetT > 0) pw += POWERUPS.magnet.icon;
-    if (this.frenzyT > 0) pw += POWERUPS.frenzy.icon;
-    el("hud-powers").textContent = pw;
-  },
 };
 
 // The y of whatever the alien is standing on — used for landing dust.

@@ -1,6 +1,6 @@
 // Alien Chomp service worker — network-first, cache fallback.
 // BUMP the cache name on ANY shell change or devices keep serving the old build.
-const CACHE = "alien-chomp-v3";
+const CACHE = "alien-chomp-v5";
 const SHELL = [
   ".",
   "index.html",
@@ -21,6 +21,7 @@ const SHELL = [
   "js/storage.js",
   "js/audio.js",
   "js/game.js",
+  "js/art.js",
   "js/render.js",
   "js/main.js",
   "icons/icon-192.png",

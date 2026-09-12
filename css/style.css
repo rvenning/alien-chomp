@@ -1,127 +1,338 @@
 /* Alien Chomp — game styles on top of lib/gk-base.css.
    The kit's primitives (.btn, .screen, .topbar, .modal, .toast, profile roster)
-   are re-themed through the --gk-* custom properties rather than forked. */
+   are re-themed through the --gk-* custom properties rather than forked.
+
+   Everything below is built from the token block at the top: colour, surfaces,
+   space, radius, depth, motion and type. A one-off pixel value in a rule
+   further down is a bug in this file, not a decision — the whole point of the
+   tokens is that two panels on two different screens cannot drift apart. */
 
 :root {
-  --gk-accent: #7ee081;  --gk-accent-sh: #46a54f;
-  --gk-green:  #3fc25a;  --gk-green-sh:  #268a3c;
-  --gk-ink: #0d0a22;
-  --ac-void: #0b0820;
-  --ac-lime: #7ee081;
-  --ac-pink: #ff5ad1;
-  --ac-cyan: #5ad1ff;
-  --ac-gold: #ffd93b;
+  /* ---- gamekit overrides ------------------------------------------------
+     gk-base's .btn carries WHITE lettering. The colours this game used to
+     hand it measured 1.63:1 (the lime accent) and 2.31:1 (the green) against
+     that white, which is not readable at any size. These are the measured
+     replacements, picked for the SMALLEST button on the page rather than the
+     biggest — ratios against #fff, computed, not eyeballed:
+       accent #b5298f 5.71:1 · green #247a33 5.38:1 · blue #2670ab 5.27:1
+       grey   #616675 5.73:1 · danger #c0463d 5.02:1                        */
+  --gk-accent: #b5298f;  --gk-accent-sh: #7d1861;
+  --gk-green:  #247a33;  --gk-green-sh:  #175523;
+  --gk-blue:   #2670ab;  --gk-blue-sh:   #17527f;
+  --gk-grey:   #616675;  --gk-grey-sh:   #414553;
+  --gk-danger: #c0463d;  --gk-danger-sh: #8c2f28;
+  --gk-ink:    #150f2e;
+
+  /* gamekit 1.9.2 made the accent button carry ink, which is right for the
+     light ambers most of the family uses but wrong here: this accent is a
+     dark magenta, chosen above against #fff. Measured on #b5298f — white
+     5.70:1, ink #150f2e 3.22:1 — so keep the white the palette was built
+     for. Only the accent button is affected; green/blue/grey/danger take
+     white from the kit either way. */
+  --gk-btn-ink: #fff;
+
+  /* ---- colour ----------------------------------------------------------
+     The bright four are the game's own signals and they all clear 7:1 on the
+     app ground (#0b0820): lime 12.0 · gold 14.3 · cyan 15.0 · pink 7.1.     */
+  --ac-void:  #0b0820;       /* the app's ground colour */
+  --ac-deep:  #070516;       /* under the game bar */
+  --ac-bone:  #f2ecff;       /* text on dark surfaces — 17.0:1 */
+  --ac-bone-2: rgba(242,236,255,.76);
+  --ac-bone-3: rgba(242,236,255,.52);
+  --ac-lime:  #7ee081;
+  --ac-pink:  #ff5ad1;
+  --ac-cyan:  #8ef0ff;
+  --ac-gold:  #ffd93b;
+  --ac-blood: #ff5a5a;
+
+  /* ---- surfaces --------------------------------------------------------- */
+  --ac-s1:   rgba(255,255,255,.07);
+  --ac-s2:   rgba(255,255,255,.12);
+  --ac-s3:   rgba(255,255,255,.18);
+  --ac-line: rgba(255,255,255,.10);
+
+  /* ---- space ------------------------------------------------------------ */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 22px; --sp-6: 30px;
+
+  /* ---- radius ----------------------------------------------------------- */
+  --r-1: 9px; --r-2: 13px; --r-3: 17px; --r-4: 22px; --r-pill: 999px;
+
+  /* ---- depth ------------------------------------------------------------ */
+  --sh-1: 0 2px 7px rgba(0,0,0,.3);
+  --sh-2: 0 7px 20px rgba(0,0,0,.38);
+  --sh-3: 0 18px 44px rgba(0,0,0,.55);
+  --sh-in: inset 0 1px 0 rgba(255,255,255,.09);
+
+  /* ---- motion ----------------------------------------------------------- */
+  --t-fast: 110ms; --t-mid: 210ms; --t-slow: 420ms;
+  --ease:     cubic-bezier(.22,.68,.36,1);
+  --ease-pop: cubic-bezier(.34,1.5,.64,1);
+
+  /* ---- type ------------------------------------------------------------- */
+  --fs-hero:  clamp(40px, 12.5vw, 70px);
+  --fs-title: 26px;
+  --fs-h2:    21px;
+  --fs-h3:    18px;
+  --fs-body:  14px;
+  --fs-small: 12.5px;
+  --fs-tiny:  11.5px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; overflow: hidden; }
+
+/* Paint the ROOT, not just body: with viewport-fit=cover iOS extends the
+   visual viewport past height:100% in standalone, and a body-only background
+   leaves a pale strip behind the home indicator. */
+html {
+  height: 100%; overflow: hidden;
+  background: var(--ac-void);
+}
 body {
+  height: 100%; overflow: hidden;
   font-family: 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif;
-  color: #fff;
+  color: var(--ac-bone);
   background:
-    radial-gradient(ellipse at 15% -10%, #2e1c5e 0%, transparent 55%),
-    radial-gradient(ellipse at 90% 110%, #10324a 0%, transparent 60%),
-    linear-gradient(180deg, #1a1140 0%, var(--ac-void) 70%);
+    radial-gradient(ellipse at 12% -12%, #3a1c6e 0%, transparent 55%),
+    radial-gradient(ellipse at 92% 112%, #0d3a52 0%, transparent 58%),
+    linear-gradient(180deg, #1d1146 0%, var(--ac-void) 72%);
+  background-color: var(--ac-void);   /* after the shorthand, or it is a no-op */
   -webkit-user-select: none; user-select: none;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
 .screen { background: transparent; }
-h2 { font-size: 22px; }
+h2 { font-size: var(--fs-h2); }
+
+/* ------------------------------- buttons --------------------------------- */
+/* gk-base gives the fill, the 3D lip and :active. The states below are what
+   make the thing feel touchable. */
+.btn, .iconbtn, .skin-card {
+  transition: transform var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease),
+              filter var(--t-fast) var(--ease);
+}
+/* Gated: a touch device that emulates hover leaves the button stuck in its
+   hover state after a tap, which reads as a bug. */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled),
+  .iconbtn:hover,
+  .skin-card:not(.locked):hover { transform: translateY(-1px); filter: brightness(1.08); }
+}
+.btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.34); }
+.btn:disabled { filter: grayscale(.55) brightness(.8); }
+.btn:focus-visible, .iconbtn:focus-visible, .skin-card:focus-visible, .lb-row:focus-visible {
+  outline: 3px solid var(--ac-gold); outline-offset: 3px;
+}
+.btn.big { font-size: 22px; padding: 18px 34px; min-width: 260px; }
+/* gk-base gives .iconbtn a near-white card, which on this game's dark screens
+   is the one element that stops looking like the app. Bone on this surface
+   measures 10.6:1 over the splash ground. */
+.iconbtn {
+  background: var(--ac-s2); color: var(--ac-bone);
+  box-shadow: 0 4px 0 rgba(0,0,0,.34), var(--sh-in);
+}
+.btn.ghost {
+  background: var(--ac-s3); box-shadow: 0 4px 0 rgba(0,0,0,.34), var(--sh-in);
+  color: var(--ac-bone);
+}
 
 /* -------------------------------- splash --------------------------------- */
 .splash-inner {
   min-height: 100%; width: 100%; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 6px;
-  padding: 24px; text-align: center;
+  align-items: center; justify-content: center; gap: var(--sp-1);
+  padding: var(--sp-5); text-align: center;
 }
-.splash-orbit { font-size: 30px; letter-spacing: 14px; animation: bob 3s ease-in-out infinite; }
-@keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
+/* The hero is the game's first promise about what it looks like, so it is the
+   real cast drawn by the real painters rather than a row of system emoji. */
+.hero-wrap {
+  width: min(360px, 88vw); height: min(132px, 24vh);
+  position: relative; margin-bottom: var(--sp-1);
+}
+.hero-wrap canvas { width: 100%; height: 100%; display: block; }
 .logo {
-  font-size: clamp(42px, 12vw, 70px); line-height: 0.95; font-weight: 800;
+  font-size: var(--fs-hero); line-height: .95; font-weight: 800;
   color: var(--ac-lime);
-  text-shadow: 0 4px 0 #2c7a38, 0 8px 0 rgba(0,0,0,.4);
-  margin: 6px 0 2px;
+  text-shadow: 0 4px 0 #1f6b2c, 0 8px 0 rgba(0,0,0,.45);
+  margin: var(--sp-1) 0 2px;
 }
-.logo span { display: block; color: var(--ac-pink); text-shadow: 0 4px 0 #9c2078, 0 8px 0 rgba(0,0,0,.4); }
-.tagline { font-size: 17px; opacity: .92; margin-bottom: 14px; max-width: 320px; }
-.btn.big { font-size: 22px; padding: 18px 34px; min-width: 260px; }
-.btn.ghost { background: rgba(255,255,255,.14); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
-.keys-hint { font-size: 12.5px; opacity: .55; margin-top: 10px; display: none; }
+.logo span { display: block; color: var(--ac-pink); text-shadow: 0 4px 0 #8c1f6a, 0 8px 0 rgba(0,0,0,.45); }
+.tagline {
+  font-size: var(--fs-h3); color: var(--ac-bone-2);
+  margin-bottom: var(--sp-3); max-width: 320px;
+}
+.keys-hint {
+  font-size: var(--fs-small); color: var(--ac-bone-3);
+  margin-top: var(--sp-2); display: none;
+}
 @media (pointer: fine) { .keys-hint { display: block; } }
-.splash-foot { margin-top: 16px; display: flex; align-items: center; gap: 14px; opacity: .9; font-size: 14px; }
+.splash-foot {
+  margin-top: var(--sp-4); display: flex; align-items: center; gap: var(--sp-4);
+  color: var(--ac-bone-2); font-size: var(--fs-body);
+}
 
 /* --------------------------------- hub ----------------------------------- */
-.home-player { font-size: 17px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home-player { font-size: var(--fs-h3); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .home-skin {
-  font-size: 12px; font-weight: 800; background: rgba(126,224,129,.2);
-  color: var(--ac-lime); padding: 5px 10px; border-radius: 11px; white-space: nowrap;
+  font-size: var(--fs-tiny); font-weight: 800; background: rgba(126,224,129,.2);
+  color: var(--ac-lime); padding: 5px 10px; border-radius: var(--r-1); white-space: nowrap;
 }
 /* minmax(0,…) not 1fr: an `auto` minimum refuses to shrink below its content
    and the last column spills off a narrow phone. */
-.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0 18px; }
-.stat {
-  background: rgba(255,255,255,.09); border-radius: 16px; padding: 12px 14px;
-  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+.stat-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3); margin: var(--sp-4) 0 var(--sp-5);
 }
-.stat .k { font-size: 12px; opacity: .7; font-weight: 700; }
-.stat .v { font-size: 22px; font-weight: 800; color: var(--ac-gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat {
+  background: var(--ac-s1); border: 1px solid var(--ac-line);
+  border-radius: var(--r-3); padding: var(--sp-3) var(--sp-4);
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  box-shadow: var(--sh-in);
+}
+.stat .k { font-size: var(--fs-tiny); color: var(--ac-bone-3); font-weight: 700; }
+.stat .v {
+  font-size: 22px; font-weight: 800; color: var(--ac-gold);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .stat.wide { grid-column: 1 / -1; }
-.stat.wide .v { font-size: 18px; color: var(--ac-cyan); }
-.nudge { font-size: 13px; opacity: .75; text-align: center; margin-top: 10px; }
+.stat.wide .v { font-size: var(--fs-h3); color: var(--ac-cyan); }
+.nudge { font-size: var(--fs-body); color: var(--ac-bone-3); text-align: center; margin-top: var(--sp-3); }
 
 /* -------------------------------- skins ---------------------------------- */
-.skin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
 .skin-card {
-  border: none; border-radius: 18px; padding: 14px 10px; cursor: pointer;
-  font-family: inherit; color: #fff; min-width: 0;
-  background: rgba(255,255,255,.1); box-shadow: 0 4px 0 rgba(0,0,0,.3);
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  border: 1px solid var(--ac-line); border-radius: var(--r-4);
+  padding: var(--sp-3) var(--sp-2) var(--sp-3); cursor: pointer;
+  font-family: inherit; color: var(--ac-bone); min-width: 0;
+  background: var(--ac-s1); box-shadow: 0 4px 0 rgba(0,0,0,.34), var(--sh-in);
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-1);
 }
-.skin-card.on { background: rgba(126,224,129,.26); box-shadow: 0 4px 0 var(--gk-green-sh); }
-.skin-card.locked { opacity: .5; cursor: default; }
-.skin-card:not(.locked):active { transform: translateY(2px); }
-.skin-blob { width: 40px; height: 48px; border-radius: 50%; display: block; }
+.skin-card.on {
+  background: rgba(126,224,129,.22); border-color: rgba(126,224,129,.5);
+  box-shadow: 0 4px 0 var(--gk-green-sh), var(--sh-in);
+}
+.skin-card.locked { opacity: .55; cursor: default; }
+.skin-card:not(.locked):active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.34); }
+/* Every card draws its alien with the game's own painter, so a skin can never
+   look like one thing in the locker and another in the run. */
+.skin-cv { width: 62px; height: 62px; display: block; }
+.skin-card.locked .skin-cv { filter: grayscale(1) brightness(.5); }
 .skin-name { font-weight: 800; font-size: 15px; }
-.skin-need { font-size: 11.5px; opacity: .75; }
+.skin-need { font-size: var(--fs-tiny); color: var(--ac-bone-3); }
+.skin-card.on .skin-need { color: var(--ac-lime); }
 
 /* ------------------------------ game screen ------------------------------ */
-/* gk-base centers .screen children (shrink-to-content width); the stage has to
-   stretch to the full viewport or an absolutely-positioned canvas measures 0. */
+/* gk-base centres .screen children (shrink-to-content width); the stage has to
+   stretch to the full viewport or an absolutely-positioned canvas measures 0.
+   Do NOT also drop position:fixed — inset:0 is the only thing giving the
+   screen a height, and without it the flex:1 stage collapses vertically. */
 #screen-game { display: none; flex-direction: column; align-items: stretch; overflow: hidden; touch-action: none; }
 #screen-game.active { display: flex; }
+/* Capped to roughly the playfield's own width (400 logical px at the scale a
+   landscape phone uses). A hunger bar stretched across a whole monitor reads as
+   a loading bar, not as game state. */
 .gamebar {
-  display: flex; align-items: center; gap: 8px;
-  padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
-  background: rgba(8,6,24,.85); z-index: 5;
+  display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%; max-width: 760px; margin: 0 auto;
+  padding: calc(var(--sp-2) + env(safe-area-inset-top)) var(--sp-3) var(--sp-2);
+  background: linear-gradient(180deg, rgba(7,5,22,.94), rgba(7,5,22,.72));
+  border-bottom: 1px solid var(--ac-line);
+  z-index: 5;
 }
-.gamebar .iconbtn.small { width: 36px; height: 36px; font-size: 16px; border-radius: 11px; }
+/* 44px wide is the minimum target; the height is capped by the bar, so the
+   width is where the thumb gets its room. */
+.gamebar .iconbtn.small {
+  width: 44px; height: 38px; font-size: 17px; border-radius: var(--r-1);
+  background: var(--ac-s2); color: var(--ac-bone);
+  box-shadow: 0 3px 0 rgba(0,0,0,.34), var(--sh-in);
+}
+
+/* ---- the hunger bar: the clock the whole game is racing ---- */
 .hunger {
-  flex: 1; height: 16px; min-width: 60px; border-radius: 9px; overflow: hidden;
-  background: rgba(0,0,0,.45); box-shadow: inset 0 2px 4px rgba(0,0,0,.4); position: relative;
+  flex: 1; height: 18px; min-width: 64px; border-radius: var(--r-1);
+  overflow: hidden; position: relative;
+  background: rgba(0,0,0,.5);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.5), 0 0 0 1px var(--ac-line);
 }
 .hunger-fill {
-  height: 100%; width: 100%; border-radius: 9px;
-  background: linear-gradient(180deg, #9cf0a0, var(--gk-green));
-  transition: width .12s linear;
+  height: 100%; width: 100%; border-radius: var(--r-1);
+  background: linear-gradient(180deg, #b6f5b9, var(--ac-lime) 55%, #3fae52);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+  transition: width .12s linear, background var(--t-mid) var(--ease);
+  position: relative;
 }
-.hunger-fill.mid { background: linear-gradient(180deg, #ffe27a, #f0a93b); }
-.hunger-fill.low { background: linear-gradient(180deg, #ff9a9a, #e03a3a); animation: panic .5s ease-in-out infinite; }
-@keyframes panic { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+/* A bright leading edge: where the bar IS matters more than how full it is. */
+.hunger-fill::after {
+  content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 2.5px;
+  background: rgba(255,255,255,.85);
+}
+.hunger-fill.mid { background: linear-gradient(180deg, #ffe9a0, var(--ac-gold) 55%, #e0921f); }
+.hunger-fill.low {
+  background: linear-gradient(180deg, #ffb0b0, var(--ac-blood) 55%, #c02424);
+  animation: panic .5s ease-in-out infinite;
+}
+@keyframes panic { 0%,100% { opacity: 1 } 50% { opacity: .6 } }
+/* Threshold pips at 50% and 25%, so the two states the bar changes colour at
+   are visible BEFORE it gets there. */
+.hunger::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent calc(25% - 1px), rgba(0,0,0,.45) 25%, transparent calc(25% + 1px)),
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(0,0,0,.3) 50%, transparent calc(50% + 1px));
+  z-index: 2;
+}
 .hunger .lab {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; letter-spacing: 1.4px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.75);
 }
-.hud { font-weight: 800; font-size: 14px; white-space: nowrap; }
-.hud.score { color: var(--ac-gold); font-size: 17px; }
-.hud.dist { opacity: .8; }
-.hud.combo { color: var(--ac-lime); min-width: 26px; }
-.hud.combo.hot { color: var(--ac-pink); animation: pop .35s ease-out infinite alternate; }
-@keyframes pop { from { transform: scale(1) } to { transform: scale(1.14) } }
-.hud.powers { font-size: 15px; }
+
+/* ---- HUD pills ---- */
+.hud {
+  font-weight: 800; font-size: var(--fs-body); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;            /* transform does nothing on an inline box */
+}
+.hud.score {
+  color: var(--ac-gold); font-size: var(--fs-h3);
+  padding: 2px var(--sp-2); border-radius: var(--r-pill);
+  background: var(--ac-s1); box-shadow: var(--sh-in);
+}
+.hud.dist { color: var(--ac-bone-2); }
+.hud.combo { color: var(--ac-lime); min-width: 0; }
+.hud.combo.on {
+  padding: 2px var(--sp-2); border-radius: var(--r-pill);
+  background: rgba(126,224,129,.18); box-shadow: var(--sh-in);
+}
+.hud.combo.hot {
+  color: var(--ac-pink); background: rgba(255,90,209,.2);
+  animation: throb .35s ease-out infinite alternate;
+}
+@keyframes throb { from { transform: scale(1) } to { transform: scale(1.12) } }
+.hud.pop { animation: bump var(--t-mid) var(--ease-pop); }
+@keyframes bump { 0% { transform: scale(1) } 40% { transform: scale(1.22) } 100% { transform: scale(1) } }
+.hud.powers { display: inline-flex; gap: 5px; font-size: 15px; }
+/* Each live power carries a draining underline, so "how long have I got?" is
+   answerable without counting seconds. --k is set by the renderer. */
+.pw {
+  position: relative; line-height: 1;
+  padding: 2px 3px 4px; border-radius: var(--r-1);
+  background: var(--ac-s2); box-shadow: var(--sh-in);
+}
+.pw::after {
+  content: ""; position: absolute; left: 3px; right: 3px; bottom: 1.5px; height: 2px;
+  border-radius: 2px; background: currentColor;
+  transform: scaleX(var(--k, 100%)); transform-origin: left;
+  transition: transform 120ms linear;
+}
+.pw-shield { color: var(--ac-gold); }
+.pw-magnet { color: #4fc3f7; }
+.pw-frenzy { color: var(--ac-pink); }
+
 .game-stage {
   position: relative; flex: 1; width: 100%; overflow: hidden; touch-action: none;
-  background: #0b0820;
+  background: var(--ac-void);
 }
 /* The canvas is a replaced element: without an explicit CSS size it renders at
    its ATTRIBUTE size (logical x DPR) and overflows every retina screen. */
@@ -131,21 +342,99 @@ h2 { font-size: 22px; }
 .res-inner {
   min-height: 100%; width: 100%; max-width: 480px; margin: 0 auto;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; padding: 24px; text-align: center;
+  gap: var(--sp-2); padding: var(--sp-5); text-align: center;
 }
-.res-emoji { font-size: 62px; animation: bob 2s ease-in-out infinite; }
-.res-title { font-size: 26px; }
-.res-score { font-size: 50px; font-weight: 800; color: var(--ac-gold); line-height: 1; }
-.res-sub { font-size: 14px; opacity: .75; }
+/* The last thing the player sees is the alien they were, drawn by the painter
+   that drew her all run — not a system 💀. */
+.res-hero { width: 96px; height: 96px; }
+.res-hero canvas { width: 100%; height: 100%; display: block; }
+.res-title { font-size: var(--fs-title); }
+.res-score {
+  font-size: 50px; font-weight: 800; color: var(--ac-gold); line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.res-sub { font-size: var(--fs-body); color: var(--ac-bone-3); }
 .res-stats {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
-  margin: 14px 0 6px; width: 100%; font-size: 14px; font-weight: 700;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2);
+  margin: var(--sp-4) 0 var(--sp-1); width: 100%;
+  font-size: var(--fs-body); font-weight: 700;
 }
-.res-stats div { background: rgba(255,255,255,.09); border-radius: 12px; padding: 8px 10px; }
+.res-stats div {
+  background: var(--ac-s1); border: 1px solid var(--ac-line);
+  border-radius: var(--r-2); padding: var(--sp-2) var(--sp-3);
+  box-shadow: var(--sh-in);
+  animation: riseIn var(--t-mid) var(--ease-pop) both;
+}
+/* Staggered so the same five numbers read as a reveal instead of a table. */
+.res-stats div:nth-child(1) { animation-delay: 40ms }
+.res-stats div:nth-child(2) { animation-delay: 110ms }
+.res-stats div:nth-child(3) { animation-delay: 180ms }
+.res-stats div:nth-child(4) { animation-delay: 250ms }
+.res-stats div:nth-child(5) { animation-delay: 320ms }
+@keyframes riseIn { from { opacity: 0; transform: translateY(10px) scale(.96) } to { opacity: 1; transform: none } }
 .res-stats div:last-child:nth-child(odd) { grid-column: 1 / -1; }
-.res-note { font-size: 13.5px; opacity: .8; min-height: 18px; }
-.res-note.unlocked { color: var(--ac-lime); opacity: 1; font-weight: 800; }
-.res-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+.res-note { font-size: var(--fs-body); color: var(--ac-bone-3); min-height: 18px; }
+.res-note.unlocked { color: var(--ac-lime); font-weight: 800; }
+/* Three buttons side by side do not fit a phone; stack them and put the most
+   likely next action first regardless of DOM order. */
+.res-actions {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  margin-top: var(--sp-4); width: 100%; max-width: 300px;
+}
+.res-actions .btn { width: 100%; }
+.res-actions .btn.green { order: -1; }
 
 /* ----------------------------- leaderboard ------------------------------- */
-.lb-stat { font-weight: 800; font-size: 13px; opacity: .9; margin-left: 8px; }
+/* gk-base gives .profile-card and .lb-row a white card. They sit on the game's
+   dark screen, and they are the one place the app visibly stopped looking like
+   itself. The PIN/name sheets stay light on purpose. */
+.profile-card, .lb-row {
+  background: var(--ac-s1); color: var(--ac-bone);
+  border: 1px solid var(--ac-line); box-shadow: var(--sh-1), var(--sh-in);
+}
+.lb-row.me { outline: 3px solid var(--ac-gold); }
+.lb-stat {
+  font-weight: 800; font-size: var(--fs-body); color: var(--ac-bone-2);
+  margin-left: var(--sp-2); font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------- modals --------------------------------- */
+/* A sheet that simply appears reads as unfinished. */
+.modal.visible .sheet { animation: sheetIn var(--t-mid) var(--ease-pop) both; }
+@keyframes sheetIn {
+  from { opacity: 0; transform: translateY(14px) scale(.96) }
+  to   { opacity: 1; transform: none }
+}
+.toast { bottom: calc(var(--sp-5) + env(safe-area-inset-bottom)); }
+
+/* ------------------------------ responsive ------------------------------- */
+/* Short viewports give up the DECORATIVE things first: the hero art goes
+   before the title does. */
+@media (max-height: 620px) {
+  .hero-wrap { height: min(96px, 19vh); }
+  .res-hero { width: 72px; height: 72px; }
+}
+@media (orientation: landscape) and (max-height: 470px) {
+  .hero-wrap { display: none; }
+  .res-hero { display: none; }
+  .splash-inner { gap: 0; padding: var(--sp-3) var(--sp-5); }
+  .tagline { margin-bottom: var(--sp-2); }
+  .gamebar { padding-top: calc(var(--sp-1) + env(safe-area-inset-top)); padding-bottom: var(--sp-1); }
+  .res-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .res-actions { flex-direction: row; max-width: 420px; }
+}
+@media (min-width: 860px) {
+  .skin-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------------------------- reduced motion ----------------------------- */
+/* The canvas half is one flag (Art.motion) multiplied into every sway, drift,
+   pulse, shake and squash; this is the DOM half. Focus rings and colour state
+   changes are left alone — they are information, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
